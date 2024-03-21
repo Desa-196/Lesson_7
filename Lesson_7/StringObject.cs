@@ -10,11 +10,9 @@ namespace Lesson_7
 {
     static class StringObject
     {
-        static object StringToObject(string s)
+        public static object StringToObject(string s)
         {
             string[] arrayInfo = s.Split("\n");
-
-            Console.WriteLine($"{arrayInfo[0]} - {arrayInfo[1]}");
 
             var t4 = Activator.CreateInstance(null, arrayInfo[1]).Unwrap();
 
@@ -26,8 +24,23 @@ namespace Lesson_7
                 for (int i = 2; i < arrayInfo.Length; i++)
                 {
                     string[] arrayInfo2 = arrayInfo[i].Split("=");
+
                     var prop = type.GetProperty(arrayInfo2[0]);
-                    if (prop == null) continue;
+                    //Если свойство с таким именем отсутствует в классе, значит пройдемся по всем свойствам и проверим есть ли у них атрибут с полем Name = имени полученным из строки
+                    if (prop == null)
+                    {
+                        foreach (var property in type.GetProperties())
+                        {
+                            CustomNameAttribute? attribute = property.GetCustomAttribute<CustomNameAttribute>();
+                            if (attribute != null && attribute.Name == arrayInfo2[0])
+                            { 
+                                prop = type.GetProperty(property.Name);
+                                break;
+                            }
+                        }
+                        //Если всё ещё не нашли, значит пропускам это свойство
+                        if (prop == null) continue;
+                    }
                     if (prop.PropertyType == typeof(int))
                     {
                         prop.SetValue(t4, int.Parse(arrayInfo2[1]));
@@ -50,7 +63,7 @@ namespace Lesson_7
             return t4;
         }
 
-        static string ObjectToString(object o)
+        public static string ObjectToString(object o)
         {
             StringBuilder sb = new StringBuilder();
 
@@ -59,11 +72,16 @@ namespace Lesson_7
             sb.Append(type.Assembly + "\n");
             sb.Append(type.FullName + "\n");
 
-            var properties = type.GetProperties();
-            foreach (var prop in properties)
+            foreach (var prop in type.GetProperties())
             {
                 if (prop.GetCustomAttribute<DontSaveAttribute>() != null) continue;
-                sb.Append(prop.Name + "=");
+
+                //Если свойство помечено атрибутом CustomNameAttribute то сохраняем его под именем переданным в контруктор атрибута
+                CustomNameAttribute? attribute = prop.GetCustomAttribute<CustomNameAttribute>();
+
+                if (attribute != null) sb.Append(attribute.Name + "=");           
+                else sb.Append(prop.Name + "=");
+
                 var val = prop.GetValue(o);
 
                 if (prop.PropertyType == typeof(char[]))

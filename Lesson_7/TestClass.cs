@@ -14,6 +14,7 @@ namespace Lesson_7
         public int I { get; set; }
         public char[]? C { get; set; }
 
+        [CustomName("RenameStringS")]
         public string? S { get; set; }
         public decimal D { get; set; }
 
